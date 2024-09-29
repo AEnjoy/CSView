@@ -295,17 +295,57 @@ channel又称为管道，用于数据传递或数据共享，其本质是一个�
 
 ### 如何判断channel已经关闭？<Badge text="重要" type="danger" />
 
+1. 尝试接收并检查第二个返回值:
 
+	```go
+	if v, ok := <-ch; !ok {
+		fmt.Println("channel 已关闭，读取不到数据")
+	}
+	```
 
-```go
-if v, ok := <-ch; !ok {
-	fmt.Println("channel 已关闭，读取不到数据")
-}
-```
+2. 使用 range 循环:
 
+如果在一个 channel 上使用了 range 循环，当 channel 被关闭时循环会自动停止。这种方式通常用于处理 channel 中的所有元素直到它被关闭。
+   
+	```go
+ 	for value := range ch {
+    		// 处理 value
+	}
+	// 当 range 结束时，channel 已经关闭
+	```
+ 
+3. 使用 select 语句 的 default:
 
+	```go
+	select {
+	case value, ok := <-ch:
+    		if !ok {
+        		// channel 已经关闭
+    		} else {
+        		// 处理 value
+    		}
+	default:
+ 		// 可选：执行其他操作或检查
+	}
+ 	```
 
+4. 使用 sync 包中的 WaitGroup:
 
+在某些情况下，我们可能会控制着发送方，可以在发送完成后关闭 channel，并且使用 sync.WaitGroup 来同步主 goroutine 和 worker goroutines，以确保所有工作都已完成且 channel 已关闭。
+
+	```go
+ 	var wg sync.WaitGroup
+	go func() {
+    		defer wg.Done()
+    		for value := range ch {
+        		// 处理 value
+    		}
+    		// channel 已经关闭
+	}()
+	// 发送数据到 channel...
+	close(ch)
+	wg.Wait()
+  	```
 
 ### channel的底层实现原理？<Badge text="了解" type="info" />
 
